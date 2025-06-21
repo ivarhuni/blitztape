@@ -22,6 +22,23 @@ class RUVImprovedScraper:
         self.base_url = "https://www.ruv.is"
         self.episodes = []
         
+    def get_series_title(self, series_url):
+        """Extracts the series title from the main series page."""
+        try:
+            response = self.session.get(series_url)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, 'html.parser')
+            title_element = soup.find('h1')
+            if title_element:
+                return title_element.get_text(strip=True)
+            title_element = soup.find('h2')
+            if title_element:
+                return title_element.get_text(strip=True)
+            return None
+        except Exception as e:
+            print(f"Error getting series title: {e}")
+            return None
+
     def get_all_episodes(self, series_url):
         """Get all episodes from a series page by analyzing the page structure"""
         try:
@@ -277,41 +294,48 @@ class RUVImprovedScraper:
             with open(info_file, 'w', encoding='utf-8') as f:
                 f.write(info_content)
             
-            print(f"📋 Info file saved to: {info_file}")
+            print(f"✓ Info file created: {info_file}")
+            return info_file
             
         except Exception as e:
             print(f"Error creating info file: {e}")
 
-    def scrape_series(self, series_url, download_videos=True):
+    def scrape_series(self, series_url, download_videos=True, download_limit=None, output_dir_base="downloads"):
         """Main method to scrape an entire series"""
         print(f"Starting to scrape series from: {series_url}")
         print("="*60)
+
+        series_title = self.get_series_title(series_url)
+        if not series_title:
+            print("Could not determine series title. Exiting.")
+            return
+
+        print(f"Series Title: {series_title}")
         
-        # Get all episode links
-        episodes = self.get_all_episodes(series_url)
-        print(f"Found {len(episodes)} episodes")
-        
-        if not episodes:
-            print("No episodes found. Trying to scrape the single page...")
-            video_info = self.extract_video_data(series_url)
-            if video_info:
-                episodes = [{'url': series_url, 'title': video_info['title']}]
-        
-        # Determine series folder name
-        series_title = episodes[0]['title'] if episodes else 'downloaded_series'
-        safe_series_title = re.sub(r'[<>:"/\\|?*]', '_', series_title)
-        output_dir = os.path.join('downloads', safe_series_title)
+        output_dir = os.path.join(output_dir_base, re.sub(r'[<>:"/\\|?*]', '_', series_title))
         os.makedirs(output_dir, exist_ok=True)
         
+        episodes_data = self.get_all_episodes(series_url)
+        print(f"Found {len(episodes_data)} episodes")
+        
+        if not episodes_data:
+            print("No episodes found. Exiting.")
+            return
+
+        all_episodes_metadata = []
+
         # Process each episode
-        downloaded_episodes = []
-        for i, episode in enumerate(episodes, 1):
-            print(f"\n[{i}/{len(episodes)}] Processing: {episode['title']}")
+        for i, episode in enumerate(episodes_data, 1):
+            if download_limit is not None and i > download_limit:
+                print(f"\nReached download limit of {download_limit}. Stopping.")
+                break
+
+            print(f"\n[{i}/{len(episodes_data)}] Processing: {episode['title']}")
             print("-" * 40)
             
             video_info = self.extract_video_data(episode['url'])
             if video_info:
-                downloaded_episodes.append(video_info)
+                all_episodes_metadata.append(video_info)
                 print(f"Title: {video_info['title']}")
                 print(f"URL: {video_info['url']}")
                 if video_info.get('video_url'):
@@ -330,33 +354,47 @@ class RUVImprovedScraper:
                 print(f"Failed to extract video info for: {episode['title']}")
         
         # Create info.nfo file with all episode information
-        if downloaded_episodes:
-            self.create_info_file(series_title, downloaded_episodes, output_dir)
+        if all_episodes_metadata:
+            self.create_info_file(series_title, all_episodes_metadata, output_dir)
         
         print(f"\n" + "="*60)
-        print(f"Scraping completed! Found {len(downloaded_episodes)} episodes.")
-        print(f"Files saved to: {output_dir}")
+        print(f"Scraping completed! Processed {len(all_episodes_metadata)} episodes.")
+        print(f"Downloads and info file are in: {output_dir}")
         
-        return downloaded_episodes
+        return all_episodes_metadata
 
 def main():
+    if len(sys.argv) < 2:
+        print("Usage: python ruv_improved_scraper.py <series_url> [--limit <number_of_episodes>] [--output-dir <directory>]")
+        sys.exit(1)
+        
+    series_url = sys.argv[1]
+    limit = None
+    output_dir_base = os.path.join("ruv_scraper", "downloads")
+
+    if '--limit' in sys.argv:
+        try:
+            limit_index = sys.argv.index('--limit') + 1
+            limit = int(sys.argv[limit_index])
+        except (ValueError, IndexError):
+            print("Invalid value for --limit. Please provide an integer.")
+            sys.exit(1)
+
+    if '--output-dir' in sys.argv:
+        try:
+            output_dir_index = sys.argv.index('--output-dir') + 1
+            output_dir_base = sys.argv[output_dir_index]
+        except IndexError:
+            print("Invalid value for --output-dir. Please provide a path.")
+            sys.exit(1)
+
     scraper = RUVImprovedScraper()
-    
-    # The series URL
-    series_url = "https://www.ruv.is/sjonvarp/spila/sammi-brunavordur-x/37768/b85s4f"
-    
-    # Scrape the series
-    episodes = scraper.scrape_series(series_url, download_videos=True)
-    
-    # Print final summary
-    print("\n" + "="*60)
-    print("FINAL EPISODE SUMMARY")
-    print("="*60)
-    for i, episode in enumerate(episodes, 1):
-        print(f"{i}. {episode['title']}")
-        if episode.get('video_url'):
-            print(f"   Video URL: {episode['video_url']}")
-        print()
+    scraper.scrape_series(
+        series_url, 
+        download_videos=True, 
+        download_limit=limit,
+        output_dir_base=output_dir_base
+    )
 
 if __name__ == "__main__":
     main() 

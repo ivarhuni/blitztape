@@ -35,5 +35,3 @@ To use the scraper, you would run the appropriate Python script from your termin
 ```bash
 python ruv_scraper/ruv_scraper.py "URL_OF_THE_RUV_SERIES"
 ```
-
-*Note: There may be multiple versions of the scraper script in the `ruv_scraper` directory. Please refer to the latest/most enhanced version for use.* 
