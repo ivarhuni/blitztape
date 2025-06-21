@@ -228,8 +228,6 @@ class RUVImprovedScraper:
                 '--output', output_file,
                 '--format', 'best',
                 '--merge-output-format', 'mkv',
-                '--write-description',
-                '--write-info-json',
                 '--no-check-certificates',
                 '--geo-bypass',
                 video_info['url']
@@ -265,6 +263,25 @@ class RUVImprovedScraper:
             print(f"Error downloading {episode_title}: {e}")
             return False
     
+    def create_info_file(self, series_title, episodes_data, output_dir):
+        """Create a single info.nfo file with all episode information"""
+        try:
+            info_content = f"""<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<tvshow>\n    <title>{series_title}</title>\n    <episodes>\n"""
+            
+            for i, episode in enumerate(episodes_data, 1):
+                info_content += f"""        <episode>\n            <number>{i}</number>\n            <title>{episode.get('title', 'Unknown')}</title>\n            <description>{episode.get('description', '')}</description>\n            <url>{episode.get('url', '')}</url>\n            <video_url>{episode.get('video_url', '')}</video_url>\n        </episode>\n"""
+            
+            info_content += """    </episodes>\n</tvshow>"""
+            
+            info_file = os.path.join(output_dir, 'info.nfo')
+            with open(info_file, 'w', encoding='utf-8') as f:
+                f.write(info_content)
+            
+            print(f"📋 Info file saved to: {info_file}")
+            
+        except Exception as e:
+            print(f"Error creating info file: {e}")
+
     def scrape_series(self, series_url, download_videos=True):
         """Main method to scrape an entire series"""
         print(f"Starting to scrape series from: {series_url}")
@@ -287,13 +304,14 @@ class RUVImprovedScraper:
         os.makedirs(output_dir, exist_ok=True)
         
         # Process each episode
+        downloaded_episodes = []
         for i, episode in enumerate(episodes, 1):
             print(f"\n[{i}/{len(episodes)}] Processing: {episode['title']}")
             print("-" * 40)
             
             video_info = self.extract_video_data(episode['url'])
             if video_info:
-                self.episodes.append(video_info)
+                downloaded_episodes.append(video_info)
                 print(f"Title: {video_info['title']}")
                 print(f"URL: {video_info['url']}")
                 if video_info.get('video_url'):
@@ -311,17 +329,15 @@ class RUVImprovedScraper:
             else:
                 print(f"Failed to extract video info for: {episode['title']}")
         
-        # Save episode information
-        info_file = os.path.join(output_dir, 'download_info.json')
-        with open(info_file, 'w', encoding='utf-8') as f:
-            json.dump(self.episodes, f, indent=2, ensure_ascii=False)
-        print(f"Info file saved to: {info_file}")
+        # Create info.nfo file with all episode information
+        if downloaded_episodes:
+            self.create_info_file(series_title, downloaded_episodes, output_dir)
         
         print(f"\n" + "="*60)
-        print(f"Scraping completed! Found {len(self.episodes)} episodes.")
-        print("Episode information saved to download_info.json")
+        print(f"Scraping completed! Found {len(downloaded_episodes)} episodes.")
+        print(f"Files saved to: {output_dir}")
         
-        return self.episodes
+        return downloaded_episodes
 
 def main():
     scraper = RUVImprovedScraper()
