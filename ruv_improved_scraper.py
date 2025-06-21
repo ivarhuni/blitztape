@@ -280,6 +280,12 @@ class RUVImprovedScraper:
             if video_info:
                 episodes = [{'url': series_url, 'title': video_info['title']}]
         
+        # Determine series folder name
+        series_title = episodes[0]['title'] if episodes else 'downloaded_series'
+        safe_series_title = re.sub(r'[<>:"/\\|?*]', '_', series_title)
+        output_dir = os.path.join('downloads', safe_series_title)
+        os.makedirs(output_dir, exist_ok=True)
+        
         # Process each episode
         for i, episode in enumerate(episodes, 1):
             print(f"\n[{i}/{len(episodes)}] Processing: {episode['title']}")
@@ -296,7 +302,7 @@ class RUVImprovedScraper:
                     print(f"Description: {video_info['description'][:100]}...")
                 
                 if download_videos:
-                    success = self.download_with_yt_dlp(video_info, episode['title'])
+                    success = self.download_with_yt_dlp(video_info, episode['title'], output_dir)
                     if not success:
                         print("Download failed, but continuing with other episodes...")
                 
@@ -306,12 +312,14 @@ class RUVImprovedScraper:
                 print(f"Failed to extract video info for: {episode['title']}")
         
         # Save episode information
-        with open('episodes.json', 'w', encoding='utf-8') as f:
+        info_file = os.path.join(output_dir, 'download_info.json')
+        with open(info_file, 'w', encoding='utf-8') as f:
             json.dump(self.episodes, f, indent=2, ensure_ascii=False)
+        print(f"Info file saved to: {info_file}")
         
         print(f"\n" + "="*60)
         print(f"Scraping completed! Found {len(self.episodes)} episodes.")
-        print("Episode information saved to episodes.json")
+        print("Episode information saved to download_info.json")
         
         return self.episodes
 
