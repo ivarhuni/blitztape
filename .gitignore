@@ -12,4 +12,7 @@ ruv_scraper/test_downloads/
 *.wmv
 
 # Ignore yt-dlp temporary files
-*.part 
+*.part
+
+# Ignore media info files
+*.nfo 
