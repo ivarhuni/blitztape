@@ -15,4 +15,7 @@ ruv_scraper/test_downloads/
 *.part
 
 # Ignore media info files
-*.nfo 
+*.nfo
+
+# Python cache
+__pycache__/ 
