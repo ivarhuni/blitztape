@@ -48,16 +48,16 @@ python ruv_scraper/ruv_improved_scraper.py <series_url> [--limit <number_of_epis
 - `--limit <number_of_episodes>`: (Optional) Download only the first N episodes
 - `--output-dir <directory>`: (Optional) Set a custom output directory (default: `ruv_scraper/downloads`)
 
-### Example 1: Download 2 episodes of "Bubbi byggir"
+### Example 1: Download the entire series "Bubbi byggir"
 
 ```bash
-python ruv_scraper/ruv_improved_scraper.py "https://www.ruv.is/sjonvarp/spila/bubbi-byggir/37750/b80cbg" --limit 2 --output-dir ruv_scraper/test_downloads
+python ruv_scraper/ruv_improved_scraper.py "https://www.ruv.is/sjonvarp/spila/bubbi-byggir/37750/b80cbg" --output-dir ruv_scraper/test_downloads
 ```
 
-### Example 2: Download 2 episodes of "Sammi brunavörður X"
+### Example 2: Download the entire series "Sammi brunavörður X"
 
 ```bash
-python ruv_scraper/ruv_improved_scraper.py "https://www.ruv.is/sjonvarp/spila/sammi-brunavordur-x/37768/b85s4f" --limit 2 --output-dir ruv_scraper/test_downloads
+python ruv_scraper/ruv_improved_scraper.py "https://www.ruv.is/sjonvarp/spila/sammi-brunavordur-x/37768/b85s4f" --output-dir ruv_scraper/test_downloads
 ```
 
 ## Output Structure
